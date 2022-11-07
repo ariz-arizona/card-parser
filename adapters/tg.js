@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const TelegramBot = require("node-telegram-bot-api");
-const { loadPage, constructHostV2 } = require("../helpers");
+const { loadPage, constructHostV2, formatter } = require("../helpers");
 
 // const { array_chunks, timeout, formatBytes } = require("../helpers");
 
@@ -56,11 +56,16 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
             {
               caption:
                 `Разбор карточки WB <code>${cardId}</code>` +
-                `\n<a href="https://${wbUrl}${cardId}/detail.aspx">${product.name}</a>` +
-                `\nБренд: ${product.brand}` +
+                `\n${product.brand} <a href="https://${wbUrl}${cardId}/detail.aspx">${product.name}</a>` +
+                `\nЦена: ` +
+                `${product.salePriceU ?
+                  `${formatter.format(product.salePriceU / 100)} <s>${formatter.format(product.priceU / 100)}</s>` :
+                  `${formatter.format(product.priceU / 100)}`
+                }` +
                 `\nРазмеры: \n${product.sizes.map(el =>
-                  `    ${el.stocks.length ? '\u2705' : '\u274c'} ${el.name}`
-                ).join(', ')}`,
+                  `${el.stocks.length ? '\u2705' : '\u274c'} ${el.name}`
+                ).join(',')}`,
+
               parse_mode: 'HTML'
             });
         }
