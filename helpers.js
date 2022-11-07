@@ -25,8 +25,19 @@ const loadPage = async (url) => {
     }
 };
 
+const host = (t) => t >= 0 && t <= 143 ? "//basket-01.wb.ru/" : t >= 144 && t <= 287 ? "//basket-02.wb.ru/" : t >= 288 && t <= 431 ? "//basket-03.wb.ru/" : t >= 432 && t <= 719 ? "//basket-04.wb.ru/" : t >= 720 && t <= 1007 ? "//basket-05.wb.ru/" : t >= 1008 && t <= 1061 ? "//basket-06.wb.ru/" : t >= 1062 && t <= 1115 ? "//basket-07.wb.ru/" : t >= 1116 && t <= 1169 ? "//basket-08.wb.ru/" : t >= 1170 && t <= 1313 ? "//basket-09.wb.ru/" : t >= 1314 && t <= 1601 ? "//basket-10.wb.ru/" : "//basket-11.wb.ru/"
+const constructHostV2 = (t) => {
+    const e = parseInt(t, 10)
+        , n = ~~(e / 1e5)
+        , r = ~~(e / 1e3)
+        , o = host(n);
+    return "".concat(o, "vol").concat(n, "/part").concat(r, "/").concat(e)
+}
+
+
 module.exports = {
     array_chunks,
     timeout,
-    loadPage
+    loadPage,
+    constructHostV2
 };

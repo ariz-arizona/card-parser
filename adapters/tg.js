@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const TelegramBot = require("node-telegram-bot-api");
-const { loadPage } = require("../helpers");
+const { loadPage, constructHostV2 } = require("../helpers");
 
 // const { array_chunks, timeout, formatBytes } = require("../helpers");
 
@@ -38,7 +38,7 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
       // console.log(wbUrl);
       if (msgText && msgText[0] !== "/" && msgText.indexOf(wbUrl) !== -1) {
         console.log(`Сделан запрос ${msgText} от чат айди ${chatId}`);
-        
+
         const regexp = /wildberries\.ru\/catalog\/(\d*)/;
         const msgMatch = msgText.match(regexp);
         if (!msgMatch.length) {
@@ -49,15 +49,20 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
           const cardRaw = await loadPage(cardUrl);
           const card = JSON.parse(cardRaw);
           const product = card.data.products[0];
+          const imageUrl = constructHostV2(cardId);
 
-          await bot.sendMessage(chatId,
-            `Разбор карточки WB <code>${cardId}</code>
-          \n<a href="https://${wbUrl}${cardId}/detail.aspx">${product.name}</a>
-          \nБренд: ${product.brand}
-          \nРазмеры: \n${product.sizes.map(el =>
-              `    ${el.stocks.length ? '\u2705' : '\u274c'} ${el.name}`
-            ).join('\n')}`
-            , { parse_mode: 'HTML' });
+          await bot.sendPhoto(chatId,
+            `https:${imageUrl}/images/big/1.jpg`,
+            {
+              caption:
+                `Разбор карточки WB <code>${cardId}</code>` +
+                `\n<a href="https://${wbUrl}${cardId}/detail.aspx">${product.name}</a>` +
+                `\nБренд: ${product.brand}` +
+                `\nРазмеры: \n${product.sizes.map(el =>
+                  `    ${el.stocks.length ? '\u2705' : '\u274c'} ${el.name}`
+                ).join(', ')}`,
+              parse_mode: 'HTML'
+            });
         }
       }
     } catch (error) {
