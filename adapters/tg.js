@@ -6,7 +6,7 @@ const { loadPage } = require("../helpers");
 
 const { TG_TOKEN, CURRENT_HOST } = process.env;
 
-const wbUrl = 'https://www.wildberries.ru/catalog/';
+const wbUrl = 'wildberries.ru/catalog/';
 
 const bot = new TelegramBot(TG_TOKEN);
 bot.setWebHook(`${CURRENT_HOST}/tg${TG_TOKEN.replace(":", "_")}`, {
@@ -32,10 +32,14 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
     const chatId = _req.body.message.chat.id;
     // const date = _req.body.message.date;
 
-    console.log(`Сделан запрос ${msgText} от чат айди ${chatId}`);
     try {
+      // console.log(msgText.indexOf(wbUrl));
+      // console.log(msgText);
+      // console.log(wbUrl);
       if (msgText && msgText[0] !== "/" && msgText.indexOf(wbUrl) !== -1) {
-        const regexp = /www\.wildberries\.ru\/catalog\/(\d*)/;
+        console.log(`Сделан запрос ${msgText} от чат айди ${chatId}`);
+        
+        const regexp = /wildberries\.ru\/catalog\/(\d*)/;
         const msgMatch = msgText.match(regexp);
         if (!msgMatch.length) {
           await bot.sendMessage(chatId, 'Ссылка не распознана');
@@ -45,10 +49,10 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
           const cardRaw = await loadPage(cardUrl);
           const card = JSON.parse(cardRaw);
           const product = card.data.products[0];
-          
+
           await bot.sendMessage(chatId,
             `Разбор карточки WB <code>${cardId}</code>
-          \n<a href="${wbUrl}${cardId}/detail.aspx">${product.name}</a>
+          \n<a href="https://${wbUrl}${cardId}/detail.aspx">${product.name}</a>
           \nБренд: ${product.brand}
           \nРазмеры: \n${product.sizes.map(el =>
               `    ${el.stocks.length ? '\u2705' : '\u274c'} ${el.name}`
