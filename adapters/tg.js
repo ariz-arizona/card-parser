@@ -71,7 +71,7 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
 
       if (msgText && msgText[0] !== "/" && msgText.indexOf(ozonUrl) !== -1) {
         console.log(`Сделан запрос ${msgText} от чат айди ${chatId}`);
-        console.log(chatId);
+        // console.log(chatId);
 
         const regexp = /ozon\.ru\/product\/(.*?)\//;
         const msgMatch = msgText.match(regexp);
@@ -80,7 +80,7 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
         } else {
           const cardId = msgMatch[1];
           const cardUrl = `https://api.ozon.ru/composer-api.bx/page/json/v2?url=/product/${cardId}`;
-          console.log(cardUrl);
+          // console.log(cardUrl);
           const cardRaw = await loadPage(cardUrl);
           await timeout(5000);
           try {
