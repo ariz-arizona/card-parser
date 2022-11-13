@@ -1,12 +1,12 @@
 const router = require("express").Router();
 const TelegramBot = require("node-telegram-bot-api");
-const { loadPage, constructHostV2, formatter } = require("../helpers");
 
-// const { array_chunks, timeout, formatBytes } = require("../helpers");
+const { loadPage, constructHostV2, formatter, parseOzonData } = require("../helpers");
 
 const { TG_TOKEN, CURRENT_HOST } = process.env;
 
 const wbUrl = 'wildberries.ru/catalog/';
+const ozonUrl = 'ozon.ru/product/';
 
 const bot = new TelegramBot(TG_TOKEN);
 bot.setWebHook(`${CURRENT_HOST}/tg${TG_TOKEN.replace(":", "_")}`, {
@@ -33,9 +33,6 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
     // const date = _req.body.message.date;
 
     try {
-      // console.log(msgText.indexOf(wbUrl));
-      // console.log(msgText);
-      // console.log(wbUrl);
       if (msgText && msgText[0] !== "/" && msgText.indexOf(wbUrl) !== -1) {
         console.log(`Сделан запрос ${msgText} от чат айди ${chatId}`);
 
@@ -64,10 +61,61 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
                 }` +
                 `\nРазмеры: \n${product.sizes.map(el =>
                   `${el.stocks.length ? '\u2705' : '\u274c'} ${el.name}`
-                ).join(',')}`,
+                ).join(', ')}`,
 
               parse_mode: 'HTML'
             });
+        }
+      }
+
+      if (msgText && msgText[0] !== "/" && msgText.indexOf(ozonUrl) !== -1) {
+        console.log(`Сделан запрос ${msgText} от чат айди ${chatId}`);
+
+        const regexp = /ozon\.ru\/product\/(.*?)\//;
+        const msgMatch = msgText.match(regexp);
+        if (!msgMatch.length) {
+          await bot.sendMessage(chatId, 'Ссылка не распознана');
+        } else {
+          const cardId = msgMatch[1];
+          const cardUrl = `https://api.ozon.ru/composer-api.bx/page/json/v2?url=/product/${cardId}`;
+          const cardRaw = await loadPage(cardUrl);
+          const card = JSON.parse(cardRaw);
+          if (card.widgetStates) {
+            const widgetStates = card.widgetStates
+
+            const gallery = parseOzonData(widgetStates, 'webGallery');
+            const characteristics = parseOzonData(widgetStates, 'webCharacteristics');
+            const price = parseOzonData(widgetStates, 'webPrice');
+            const ozonAccountPrice = parseOzonData(widgetStates, 'webOzonAccountPrice');
+            const brand = parseOzonData(widgetStates, 'webBrand');
+            const heading = parseOzonData(widgetStates, 'webProductHeading');
+            const aspects = parseOzonData(widgetStates, 'webAspects');
+
+            // const sizes = aspects.find(el=>el.type === sizes);
+
+            // console.log({ t: aspects.aspects[0].variants[0].data.textRs });
+            const aspectsText = aspects.aspects.map(el=>{
+              return el.descriptionRs[0].content + el.variants.map(el=>{
+                return `${el.active ? '\u2705' : '\u274c'} ${el.data.textRs[0].content}`
+              }).join(', ')
+            }).join('\n')
+
+            await bot.sendPhoto(chatId,
+              gallery.coverImage,
+              {
+                caption:
+                  `Разбор карточки OZON <code>${cardId}</code>` +
+                  `\n${brand.name} <a href="${characteristics.link}">${heading.title}</a>` +
+                  `\nЦена: ` +
+                  `${price.price} ${price.originalPrice && `<s>${price.originalPrice}</s>`}` +
+                  `\n${ozonAccountPrice.priceText}` +
+                  `\n${aspectsText}`,
+
+                parse_mode: 'HTML'
+              });
+          } else {
+            console.log(cardUrl)
+          }
         }
       }
     } catch (error) {

@@ -15,13 +15,18 @@ const loadPage = async (url) => {
     }
     try {
         const res = await fetch(url);
+        const resText = await res.text();
         if (res.status >= 400) {
-            throw new Error("Bad response from server");
+            const resJson = JSON.parse(resText);
+            if (!resJson && !resJson.pageInfo) {
+                throw new Error("Bad response from server");
+            }
         }
 
-        return await res.text();
+        return resText;
     } catch (err) {
         console.error(err);
+        throw new Error(err.message.toString().slice(0, 100));
     }
 };
 
@@ -37,16 +42,25 @@ const constructHostV2 = (t) => {
 const formatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'RUB',
-  
+
     // These options are needed to round to whole numbers if that's what you want.
     //minimumFractionDigits: 0, // (this suffices for whole numbers, but will print 2500.10 as $2,500.1)
     //maximumFractionDigits: 0, // (causes 2500.99 to be printed as $2,501)
-  });
+});
+
+const parseOzonData = (widgetStates, key) => {
+    try {
+        return JSON.parse(widgetStates[Object.keys(widgetStates).find(el => el.indexOf(key) !== -1)]);
+    } catch (err) {
+        throw new Error('Element not found')
+    }
+}
 
 module.exports = {
     array_chunks,
     timeout,
     loadPage,
     constructHostV2,
-    formatter
+    formatter,
+    parseOzonData
 };
