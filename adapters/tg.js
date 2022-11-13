@@ -122,6 +122,7 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
               chatId,
               `Разбор карточки OZON <code>${cardId}</code> не удался`,
               {
+                parse_mode: 'HMTL',
                 reply_to_message_id: msgId
               }
             );
