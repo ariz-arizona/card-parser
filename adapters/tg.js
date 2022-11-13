@@ -1,7 +1,7 @@
 const router = require("express").Router();
 const TelegramBot = require("node-telegram-bot-api");
 
-const { loadPage, constructHostV2, formatter, parseOzonData } = require("../helpers");
+const { loadPage, constructHostV2, formatter, parseOzonData, timeout } = require("../helpers");
 
 const { TG_TOKEN, CURRENT_HOST } = process.env;
 
@@ -29,6 +29,7 @@ bot.on("polling_error", (error) => {
 router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
   if (_req.body.message) {
     const msgText = _req.body.message.text;
+    const msgId = _req.body.message.message_id;
     const chatId = _req.body.message.chat.id;
     // const date = _req.body.message.date;
 
@@ -62,14 +63,15 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
                 `\nРазмеры: \n${product.sizes.map(el =>
                   `${el.stocks.length ? '\u2705' : '\u274c'} ${el.name}`
                 ).join(', ')}`,
-
-              parse_mode: 'HTML'
+              parse_mode: 'HTML',
+              reply_to_message_id: msgId
             });
         }
       }
 
       if (msgText && msgText[0] !== "/" && msgText.indexOf(ozonUrl) !== -1) {
         console.log(`Сделан запрос ${msgText} от чат айди ${chatId}`);
+        console.log(chatId);
 
         const regexp = /ozon\.ru\/product\/(.*?)\//;
         const msgMatch = msgText.match(regexp);
@@ -78,45 +80,53 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
         } else {
           const cardId = msgMatch[1];
           const cardUrl = `https://api.ozon.ru/composer-api.bx/page/json/v2?url=/product/${cardId}`;
+          console.log(cardUrl);
           const cardRaw = await loadPage(cardUrl);
-          const card = JSON.parse(cardRaw);
-          if (card.widgetStates) {
-            const widgetStates = card.widgetStates
+          await timeout(5000);
+          try {
+            const card = JSON.parse(cardRaw);
+            if (card.widgetStates) {
+              const widgetStates = card.widgetStates
 
-            const gallery = parseOzonData(widgetStates, 'webGallery');
-            const characteristics = parseOzonData(widgetStates, 'webCharacteristics');
-            const price = parseOzonData(widgetStates, 'webPrice');
-            const ozonAccountPrice = parseOzonData(widgetStates, 'webOzonAccountPrice');
-            const brand = parseOzonData(widgetStates, 'webBrand');
-            const heading = parseOzonData(widgetStates, 'webProductHeading');
-            const aspects = parseOzonData(widgetStates, 'webAspects');
+              const gallery = parseOzonData(widgetStates, 'webGallery');
+              const characteristics = parseOzonData(widgetStates, 'webCharacteristics');
+              const price = parseOzonData(widgetStates, 'webPrice');
+              const ozonAccountPrice = parseOzonData(widgetStates, 'webOzonAccountPrice');
+              const brand = parseOzonData(widgetStates, 'webBrand');
+              const heading = parseOzonData(widgetStates, 'webProductHeading');
+              const aspects = parseOzonData(widgetStates, 'webAspects');
 
-            // const sizes = aspects.find(el=>el.type === sizes);
+              const aspectsText = aspects.aspects.map(el => {
+                return el.descriptionRs[0].content + el.variants.map(el => {
+                  return `${el.active ? '\u2705' : '\u274c'} ${el.data.textRs[0].content}`
+                }).join(', ')
+              }).join('\n')
 
-            // console.log({ t: aspects.aspects[0].variants[0].data.textRs });
-            const aspectsText = aspects.aspects.map(el=>{
-              return el.descriptionRs[0].content + el.variants.map(el=>{
-                return `${el.active ? '\u2705' : '\u274c'} ${el.data.textRs[0].content}`
-              }).join(', ')
-            }).join('\n')
-
-            await bot.sendPhoto(chatId,
-              gallery.coverImage,
+              await bot.sendPhoto(chatId,
+                gallery.coverImage,
+                {
+                  caption:
+                    `Разбор карточки OZON <code>${cardId}</code>` +
+                    `\n${brand && brand.name} <a href="${characteristics.link}">${heading.title}</a>` +
+                    `\nЦена: ` +
+                    `${price.price} ${price.originalPrice && `<s>${price.originalPrice}</s>`}` +
+                    `\n${ozonAccountPrice.priceText}` +
+                    `\n${aspectsText}`,
+                  parse_mode: 'HTML',
+                  reply_to_message_id: msgId
+                });
+            }
+          } catch (err) {
+            console.log(err);
+            await bot.sendMessage(
+              chatId,
+              `Разбор карточки OZON <code>${cardId}</code> не удался`,
               {
-                caption:
-                  `Разбор карточки OZON <code>${cardId}</code>` +
-                  `\n${brand.name} <a href="${characteristics.link}">${heading.title}</a>` +
-                  `\nЦена: ` +
-                  `${price.price} ${price.originalPrice && `<s>${price.originalPrice}</s>`}` +
-                  `\n${ozonAccountPrice.priceText}` +
-                  `\n${aspectsText}`,
-
-                parse_mode: 'HTML'
-              });
-          } else {
-            console.log(cardUrl)
+                reply_to_message_id: msgId
+              }
+            );
           }
-        }
+        }          
       }
     } catch (error) {
       await bot.sendMessage(chatId, error.message.toString().slice(0, 100));

@@ -17,7 +17,10 @@ const loadPage = async (url) => {
         const res = await fetch(url);
         const resText = await res.text();
         if (res.status >= 400) {
-            const resJson = JSON.parse(resText);
+            let resJson = false;
+            try {
+                resJson = JSON.parse(resText);
+            } catch (e) {}
             if (!resJson && !resJson.pageInfo) {
                 throw new Error("Bad response from server");
             }
@@ -52,7 +55,8 @@ const parseOzonData = (widgetStates, key) => {
     try {
         return JSON.parse(widgetStates[Object.keys(widgetStates).find(el => el.indexOf(key) !== -1)]);
     } catch (err) {
-        throw new Error('Element not found')
+        // throw new Error(`Element ${key} not found`);
+        return false;
     }
 }
 
