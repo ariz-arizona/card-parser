@@ -69,7 +69,7 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
         }
       }
 
-      if (msgText && msgText[0] !== "/" && msgText.indexOf(ozonUrl) !== -1) {
+      if (chatId >1 && msgText && msgText[0] !== "/" && msgText.indexOf(ozonUrl) !== -1) {
         console.log(`Сделан запрос ${msgText} от чат айди ${chatId}`);
         // console.log(chatId);
 
@@ -96,7 +96,7 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
               const heading = parseOzonData(widgetStates, 'webProductHeading');
               const aspects = parseOzonData(widgetStates, 'webAspects');
 
-              const aspectsText = aspects.aspects.map(el => {
+              const aspectsText = (aspects.aspects || []).map(el => {
                 return el.descriptionRs[0].content + el.variants.map(el => {
                   return `${el.active ? '\u2705' : '\u274c'} ${el.data.textRs[0].content}`
                 }).join(', ')
@@ -118,11 +118,12 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
             }
           } catch (err) {
             console.log(err);
+            console.log(cardUrl);
             await bot.sendMessage(
               chatId,
               `Разбор карточки OZON <code>${cardId}</code> не удался`,
               {
-                parse_mode: 'HMTL',
+                parse_mode: 'HTML',
                 reply_to_message_id: msgId
               }
             );
