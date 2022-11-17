@@ -20,7 +20,7 @@ const loadPage = async (url) => {
             let resJson = false;
             try {
                 resJson = JSON.parse(resText);
-            } catch (e) {}
+            } catch (e) { }
             if (!resJson && !resJson.pageInfo) {
                 throw new Error("Bad response from server");
             }
@@ -66,5 +66,5 @@ module.exports = {
     loadPage,
     constructHostV2,
     formatter,
-    parseOzonData
+    parseOzonData,
 };

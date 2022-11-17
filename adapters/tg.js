@@ -1,7 +1,9 @@
 const router = require("express").Router();
 const TelegramBot = require("node-telegram-bot-api");
+const chrome = require('chrome-aws-lambda');
+const puppeteer = require('puppeteer-core');
 
-const { loadPage, constructHostV2, formatter, parseOzonData, timeout } = require("../helpers");
+const { loadPage, constructHostV2, formatter, parseOzonData, timeout, headlessOptions } = require("../helpers");
 
 const { TG_TOKEN, CURRENT_HOST } = process.env;
 
@@ -69,7 +71,7 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
         }
       }
 
-      if (chatId >1 && msgText && msgText[0] !== "/" && msgText.indexOf(ozonUrl) !== -1) {
+      if (chatId > 1 && msgText && msgText[0] !== "/" && msgText.indexOf(ozonUrl) !== -1) {
         console.log(`Сделан запрос ${msgText} от чат айди ${chatId}`);
         // console.log(chatId);
 
@@ -80,9 +82,38 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
         } else {
           const cardId = msgMatch[1];
           const cardUrl = `https://api.ozon.ru/composer-api.bx/page/json/v2?url=/product/${cardId}`;
-          // console.log(cardUrl);
-          const cardRaw = await loadPage(cardUrl);
-          await timeout(5000);
+
+          const options = process.env.AWS_REGION
+            ? {
+              args: chrome.args,
+              executablePath: await chrome.executablePath,
+              headless: chrome.headless
+            }
+            : {
+              args: [],
+              executablePath:
+                process.platform === 'win32'
+                  ? 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
+                  : process.platform === 'linux'
+                    ? '/usr/bin/google-chrome'
+                    : '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+            };
+          const browser = await puppeteer.launch(options);
+          const page = await browser.newPage();
+          await page.setUserAgent('Mozilla/5.0 (Windows NT 5.1; rv:5.0) Gecko/20100101 Firefox/5.0');
+          await page.goto(cardUrl, { waitUntil: 'networkidle0' });
+          // const cardRaw = page.toString();
+          let cardRaw = await page.evaluate(() => {
+            return document.body.innerText;
+          });
+          // await timeout(5000);
+          if(cardRaw.indexOf('Access denied Error code 1020') !== -1) {
+            await page.reload();
+          }
+          cardRaw = await page.evaluate(() => {
+            return document.body.innerText;
+          })
+          // console.log(cardRaw);
           try {
             const card = JSON.parse(cardRaw);
             if (card.widgetStates) {
@@ -128,7 +159,7 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
               }
             );
           }
-        }          
+        }
       }
     } catch (error) {
       await bot.sendMessage(chatId, error.message.toString().slice(0, 100));
