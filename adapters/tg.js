@@ -3,9 +3,10 @@ const TelegramBot = require("node-telegram-bot-api");
 const chrome = require('chrome-aws-lambda');
 const puppeteer = require('puppeteer-core');
 
-const { loadPage, constructHostV2, formatter, parseOzonData, timeout, headlessOptions } = require("../helpers");
+const { loadPage, constructHostV2, formatter, parseOzonData, timeout } = require("../helpers");
 
 const { TG_TOKEN, CURRENT_HOST } = process.env;
+const LOCAL_CHROME_EXECUTABLE = '/usr/bin/google-chrome';
 
 const wbUrl = 'wildberries.ru/catalog/';
 const ozonUrl = 'ozon.ru/product/';
@@ -75,81 +76,83 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
         console.log(`Сделан запрос ${msgText} от чат айди ${chatId}`);
         // console.log(chatId);
 
-        const regexp = /ozon\.ru\/product\/(.*?)\//;
+        const regexp = /ozon\.ru\/product\/.*?-(\d*?)\//;
         const msgMatch = msgText.match(regexp);
         if (!msgMatch.length) {
           await bot.sendMessage(chatId, 'Ссылка не распознана');
         } else {
           const cardId = msgMatch[1];
-          const cardUrl = `https://api.ozon.ru/composer-api.bx/page/json/v2?url=/product/${cardId}`;
+          const cardUrl = `https://api.ozon.ru/composer-api.bx/page/json/v2?url=/search/?from_global=false&product_id=${cardId}`;
 
-          const options = process.env.AWS_REGION
-            ? {
-              args: chrome.args,
-              executablePath: await chrome.executablePath,
-              headless: chrome.headless
-            }
-            : {
-              args: [],
-              executablePath:
-                process.platform === 'win32'
-                  ? 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
-                  : process.platform === 'linux'
-                    ? '/usr/bin/google-chrome'
-                    : '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-            };
-          const browser = await puppeteer.launch(options);
+          const executablePath = await chrome.executablePath || LOCAL_CHROME_EXECUTABLE;
+          const browser = await puppeteer.launch({
+            executablePath,
+            args: chrome.args,
+            headless: false,
+          });
+
           const page = await browser.newPage();
           await page.setUserAgent('Mozilla/5.0 (Windows NT 5.1; rv:5.0) Gecko/20100101 Firefox/5.0');
           await page.goto(cardUrl, { waitUntil: 'networkidle0' });
-          // const cardRaw = page.toString();
+
           let cardRaw = await page.evaluate(() => {
             return document.body.innerText;
           });
-          // await timeout(5000);
-          if(cardRaw.indexOf('Access denied Error code 1020') !== -1) {
+          if (cardRaw.indexOf('Access denied Error code 1020') !== -1) {
+            await timeout(5000);
             await page.reload();
           }
           cardRaw = await page.evaluate(() => {
             return document.body.innerText;
           })
-          // console.log(cardRaw);
+
           try {
             const card = JSON.parse(cardRaw);
             if (card.widgetStates) {
-              const widgetStates = card.widgetStates
+              const widgetStates = card.widgetStates;
+              // await bot.sendMessage(chatId, cardUrl);
+              // await bot.sendMessage(chatId, JSON.stringify(Object.keys(widgetStates)).slice(0, 4000));
 
-              const gallery = parseOzonData(widgetStates, 'webGallery');
-              const characteristics = parseOzonData(widgetStates, 'webCharacteristics');
-              const price = parseOzonData(widgetStates, 'webPrice');
-              const ozonAccountPrice = parseOzonData(widgetStates, 'webOzonAccountPrice');
-              const brand = parseOzonData(widgetStates, 'webBrand');
-              const heading = parseOzonData(widgetStates, 'webProductHeading');
-              const aspects = parseOzonData(widgetStates, 'webAspects');
+              const outOfStock = parseOzonData(widgetStates, 'webOutOfStock');
+              if (outOfStock) {
+                const txt = `Разбор карточки OZON <code>${cardId}</code>` +
+                  `\n${outOfStock.sellerName} <a href="//ozon.ru${outOfStock.productLink}">${outOfStock.skuName}</a>` +
+                  `\nЦена: ${outOfStock.price}`;
+                await bot.sendPhoto(chatId,
+                  outOfStock.coverImage,
+                  { caption: txt, parse_mode: 'HTML', reply_to_message_id: msgId }
+                );
+              } else {
+                const gallery = parseOzonData(widgetStates, 'webGallery');
+                const characteristics = parseOzonData(widgetStates, 'webCharacteristics');
+                const price = parseOzonData(widgetStates, 'webPrice');
+                const ozonAccountPrice = parseOzonData(widgetStates, 'webOzonAccountPrice');
+                const brand = parseOzonData(widgetStates, 'webBrand');
+                const heading = parseOzonData(widgetStates, 'webProductHeading');
+                const aspects = parseOzonData(widgetStates, 'webAspects');
 
-              const aspectsText = (aspects.aspects || []).map(el => {
-                return el.descriptionRs[0].content + el.variants.map(el => {
-                  return `${el.active ? '\u2705' : '\u274c'} ${el.data.textRs[0].content}`
-                }).join(', ')
-              }).join('\n')
+                const aspectsText = (aspects.aspects || []).map(el => {
+                  return el.descriptionRs[0].content + el.variants.map(el => {
+                    return `${el.active ? '\u2705' : '\u274c'} ${el.data.textRs[0].content}`
+                  }).join(', ')
+                }).join('\n');
 
-              await bot.sendPhoto(chatId,
-                gallery.coverImage,
-                {
-                  caption:
-                    `Разбор карточки OZON <code>${cardId}</code>` +
-                    `\n${brand && brand.name} <a href="${characteristics.link}">${heading.title}</a>` +
-                    `\nЦена: ` +
-                    `${price.price} ${price.originalPrice && `<s>${price.originalPrice}</s>`}` +
-                    `\n${ozonAccountPrice.priceText}` +
-                    `\n${aspectsText}`,
-                  parse_mode: 'HTML',
-                  reply_to_message_id: msgId
-                });
+                const txt = `Разбор карточки OZON <code>${cardId}</code>` +
+                  `\n${brand && brand.name} <a href="${characteristics.link}">${heading.title}</a>` +
+                  `\nЦена: ` +
+                  `${price.price} ${price.originalPrice && `<s>${price.originalPrice}</s>`}` +
+                  `\n${ozonAccountPrice.priceText}` +
+                  `\n${aspectsText}`;
+
+                await bot.sendPhoto(chatId,
+                  gallery.coverImage,
+                  { caption: txt, parse_mode: 'HTML', reply_to_message_id: msgId }
+                );
+              }
             }
           } catch (err) {
             console.log(err);
-            console.log(cardUrl);
+            // console.log(cardUrl);
             await bot.sendMessage(
               chatId,
               `Разбор карточки OZON <code>${cardId}</code> не удался`,
