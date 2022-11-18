@@ -72,7 +72,7 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
         }
       }
 
-      if (chatId > 1 && msgText && msgText[0] !== "/" && msgText.indexOf(ozonUrl) !== -1) {
+      if (msgText && msgText[0] !== "/" && msgText.indexOf(ozonUrl) !== -1) {
         console.log(`Сделан запрос ${msgText} от чат айди ${chatId}`);
         // console.log(chatId);
 
