@@ -52,12 +52,14 @@ const formatter = new Intl.NumberFormat('en-US', {
 });
 
 const parseOzonData = (widgetStates, key) => {
-    try {
-        return JSON.parse(widgetStates[Object.keys(widgetStates).find(el => el.indexOf(key) !== -1)]);
-    } catch (err) {
-        // throw new Error(`Element ${key} not found`);
-        return false;
-    }
+    const keys = Object.keys(widgetStates).filter(el => el.indexOf(key) !== -1);
+    const res = [];
+    keys.map(key => {
+        try {
+            res.push(JSON.parse(widgetStates[key]))
+        } catch (err) { }
+    });
+    return res.length > 0 ? res : false;
 }
 
 module.exports = {

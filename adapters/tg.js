@@ -82,7 +82,7 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
           await bot.sendMessage(chatId, 'Ссылка не распознана');
         } else {
           const cardId = msgMatch[1];
-          const cardUrl = `https://api.ozon.ru/composer-api.bx/page/json/v2?url=/search/?from_global=false&product_id=${cardId}`;
+          const cardUrl = `https://api.ozon.ru/composer-api.bx/page/json/v2?url=/search/?oos_search=false&product_id=${cardId}`;
 
           const executablePath = await chrome.executablePath || LOCAL_CHROME_EXECUTABLE;
           const browser = await puppeteer.launch({
@@ -110,26 +110,24 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
             const card = JSON.parse(cardRaw);
             if (card.widgetStates) {
               const widgetStates = card.widgetStates;
-              // await bot.sendMessage(chatId, cardUrl);
-              // await bot.sendMessage(chatId, JSON.stringify(Object.keys(widgetStates)).slice(0, 4000));
-
-              const outOfStock = parseOzonData(widgetStates, 'webOutOfStock');
+              
+              const outOfStock = parseOzonData(widgetStates, 'webOutOfStock').find(el => el.sku > 0);
               if (outOfStock) {
                 const txt = `Разбор карточки OZON <code>${cardId}</code>` +
-                  `\n${outOfStock.sellerName} <a href="//ozon.ru${outOfStock.productLink}">${outOfStock.skuName}</a>` +
+                  `\n${outOfStock.sellerName} <a href="https://ozon.ru${outOfStock.productLink}">${outOfStock.skuName}</a>` +
                   `\nЦена: ${outOfStock.price}`;
                 await bot.sendPhoto(chatId,
-                  outOfStock.coverImage,
+                  outOfStock.coverImage.replace('c200', 'c1000'),
                   { caption: txt, parse_mode: 'HTML', reply_to_message_id: msgId }
                 );
               } else {
-                const gallery = parseOzonData(widgetStates, 'webGallery');
-                const characteristics = parseOzonData(widgetStates, 'webCharacteristics');
-                const price = parseOzonData(widgetStates, 'webPrice');
-                const ozonAccountPrice = parseOzonData(widgetStates, 'webOzonAccountPrice');
-                const brand = parseOzonData(widgetStates, 'webBrand');
-                const heading = parseOzonData(widgetStates, 'webProductHeading');
-                const aspects = parseOzonData(widgetStates, 'webAspects');
+                const gallery = parseOzonData(widgetStates, 'webGallery')[0];
+                const characteristics = parseOzonData(widgetStates, 'webCharacteristics')[0];
+                const price = parseOzonData(widgetStates, 'webPrice')[0];
+                const ozonAccountPrice = parseOzonData(widgetStates, 'webOzonAccountPrice')[0];
+                const brand = parseOzonData(widgetStates, 'webBrand')[0];
+                const heading = parseOzonData(widgetStates, 'webProductHeading')[0];
+                const aspects = parseOzonData(widgetStates, 'webAspects')[0];
 
                 const aspectsText = (aspects.aspects || []).map(el => {
                   return el.descriptionRs[0].content + el.variants.map(el => {
