@@ -3,9 +3,10 @@ const TelegramBot = require("node-telegram-bot-api");
 const chrome = require('chrome-aws-lambda');
 const puppeteer = require('puppeteer-core');
 
-const { loadPage, constructHostV2, formatter, parseOzonData, timeout } = require("../helpers");
+const { loadPage, constructHostV2, formatter, parseOzonData, timeout, getRandomInt } = require("../helpers");
+const shards = require("../data/shards.json");
 
-const { TG_TOKEN, CURRENT_HOST } = process.env;
+const { TG_TOKEN, CURRENT_HOST, CHANNEL_ID } = process.env;
 const LOCAL_CHROME_EXECUTABLE = '/usr/bin/google-chrome';
 
 const wbUrl = 'wildberries.ru/catalog/';
@@ -27,6 +28,50 @@ bot.on("error", (error) => {
 
 bot.on("polling_error", (error) => {
   console.log(error.code);
+});
+
+router.post(`/tg_wb_benefit`, async (_req, res) => {
+  // Список всех категорий
+  // https://static.wbstatic.net/data/main-menu-ru-ru.json
+
+  // Ссылка на поиск
+  // https://catalog.wb.ru/catalog/${SHARD}/catalog?sort=benefit&${QUERY}
+
+  // Раз в час по крону дергать этот урл, он берет случайную категорию и получает выгодный товар
+  const shardKey = Object.keys(shards)[getRandomInt(0, Object.keys(shards).length)];
+  const shard = shards[shardKey];
+  const item = shard[getRandomInt(0, shard.length)];
+  // console.log({ shardKey, item });
+  const url = `https://catalog.wb.ru/catalog/${shardKey}/catalog?sort=benefit&${item.query}`;
+  // console.log({url});
+  const dataRaw = await loadPage(url);
+  try {
+    const data = JSON.parse(dataRaw);
+
+    const products = data.data.products;
+    // console.log(products[0]);
+    products.sort((a, b) => { (a.salePriceU / a.averagePrice) - (b.salePriceU / b.averagePrice) });
+    const product = products[0];
+    const link = `https://${wbUrl}${product.id}/detail.aspx`;
+    const imageUrl = constructHostV2(product.id);
+
+    await bot.sendPhoto(CHANNEL_ID,
+      `https:${imageUrl}/images/big/1.jpg`,
+      {
+        caption:
+          `Самый выгодный товар по версии WB в категории ${item.name}` +
+          `\nРазбор карточки WB <code>${product.id}</code>` +
+          `\n${product.brand} <a href="${link}">${product.name}</a>` +
+          `\nЦена: ` +
+          `${product.salePriceU ?
+            `${formatter.format(product.salePriceU / 100)} <s>${formatter.format(product.priceU / 100)}</s>` :
+            `${formatter.format(product.priceU / 100)}`
+          }`,
+        parse_mode: 'HTML'
+      });
+  } catch (error) {
+    await bot.sendMessage(CHANNEL_ID, error.message.toString().slice(0, 100));
+  }
 });
 
 router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
@@ -110,7 +155,7 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
             const card = JSON.parse(cardRaw);
             if (card.widgetStates) {
               const widgetStates = card.widgetStates;
-              
+
               const outOfStock = parseOzonData(widgetStates, 'webOutOfStock').find(el => el.sku > 0);
               if (outOfStock) {
                 const txt = `Разбор карточки OZON <code>${cardId}</code>` +

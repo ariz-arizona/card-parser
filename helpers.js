@@ -62,6 +62,13 @@ const parseOzonData = (widgetStates, key) => {
     return res.length > 0 ? res : false;
 }
 
+const getRandomInt = (min, max) => {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    // Максимум не включается, минимум включается
+    return Math.floor(Math.random() * (max - min)) + min;
+}
+
 module.exports = {
     array_chunks,
     timeout,
@@ -69,4 +76,5 @@ module.exports = {
     constructHostV2,
     formatter,
     parseOzonData,
+    getRandomInt,
 };
