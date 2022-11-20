@@ -72,6 +72,7 @@ router.post(`/tg_wb_benefit`, async (_req, res) => {
   } catch (error) {
     await bot.sendMessage(CHANNEL_ID, error.message.toString().slice(0, 100));
   }
+  res.sendStatus(200)
 });
 
 router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
