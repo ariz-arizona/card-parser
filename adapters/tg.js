@@ -32,26 +32,31 @@ bot.on("polling_error", (error) => {
   console.log(error.code);
 });
 
-router.all(`/tg_wb_benefit_scheduler/:keyIndex`, async (_req, res) => {
-  const { keyIndex } = _req.params;
+router.post(`/tg_wb_benefit_scheduler/:keyIndex`, async (_req, res) => {
+  let { keyIndex } = _req.params;
+  let isWait = keyIndex.indexOf('_wait') !== -1;
+
+  if (isWait) keyIndex = keyIndex.replace('_wait', '');
   const keys = Object.keys(shards);
   const key = keys[keyIndex];
   const nextIndex = parseInt(keyIndex) + 1
 
-  if (keyIndex % 2) {
+  // console.log({key, keyIndex, isWait, test:parseInt(keyIndex) % 2})
+
+  if ((keyIndex % 2 === 0) && !isWait) {
     await timeout(3000);
-    fetch(`${CURRENT_HOST}/tg_wb_benefit_scheduler/${keyIndex}`);
+    fetch(`${CURRENT_HOST}/tg_wb_benefit_scheduler/${keyIndex}_wait`, { method: 'POST' });
   } else {
     if (nextIndex < keys.length) {
-      await fetch(`${CURRENT_HOST}/tg_wb_benefit/${key}`, { method: 'POST' });
+      await fetch(`${CURRENT_HOST}/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/${key}`, { method: 'POST' });
       // console.log(key);
       await timeout(3000);
-      fetch(`${CURRENT_HOST}/tg_wb_benefit_scheduler/${nextIndex}`);
+      fetch(`${CURRENT_HOST}/tg_wb_benefit_scheduler/${nextIndex}`, { method: 'POST' });
     }
   }
   res.sendStatus(200);
 })
-router.all(`/tg_wb_benefit/:shardKey`, async (_req, res) => {
+router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/:shardKey`, async (_req, res) => {
   // Список всех категорий
   // https://static.wbstatic.net/data/main-menu-ru-ru.json
 
@@ -76,9 +81,10 @@ router.all(`/tg_wb_benefit/:shardKey`, async (_req, res) => {
     const product = products[0];
 
     const redis = Redis.fromEnv();
-    const savedID = await redis.get(`cardparser_${shardKey}`);
+    const savedIDB64 = await redis.get(`cardparser_${shardKey}`);
+    const savedID = parseInt(Buffer.from(savedIDB64, 'base64').toString());
     if (savedID !== product.id) {
-      await redis.set(`cardparser_${shardKey}`, savedID);
+      await redis.set(`cardparser_${shardKey}`, product.id);
       const link = `https://${wbUrl}${product.id}/detail.aspx`;
       const imageUrl = constructHostV2(product.id);
 
@@ -104,7 +110,7 @@ router.all(`/tg_wb_benefit/:shardKey`, async (_req, res) => {
   res.sendStatus(200)
 });
 
-router.post(`/ tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
+router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
   if (_req.body.message) {
     const msgText = _req.body.message.text;
     const msgId = _req.body.message.message_id;
