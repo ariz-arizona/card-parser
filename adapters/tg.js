@@ -82,7 +82,7 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/:shardKey`, async (_
 
     const redis = Redis.fromEnv();
     const savedIDB64 = await redis.get(`cardparser_${shardKey}`);
-    const savedID = parseInt(Buffer.from(savedIDB64, 'base64').toString());
+    const savedID = parseInt(savedIDB64 !== null ? Buffer.from(savedIDB64, 'base64').toString() : 0);
     if (savedID !== product.id) {
       await redis.set(`cardparser_${shardKey}`, product.id);
       const link = `https://${wbUrl}${product.id}/detail.aspx`;
