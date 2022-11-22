@@ -22,6 +22,7 @@ const loadPage = async (url) => {
                 resJson = JSON.parse(resText);
             } catch (e) { }
             if (!resJson && !resJson.pageInfo) {
+                // console.log({url, resText});
                 throw new Error("Bad response from server");
             }
         }

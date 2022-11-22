@@ -38,8 +38,9 @@ router.all(`/tg_wb_benefit_scheduler/:keyIndex`, async (_req, res) => {
   const key = keys[keyIndex];
   const nextIndex = parseInt(keyIndex) + 1
 
-  if ((keyIndex + 1) < keys.length) {
+  if (nextIndex < keys.length) {
     await fetch(`${CURRENT_HOST}/tg_wb_benefit/${key}`, { method: 'POST' });
+    // console.log(key);
     await timeout(4000);
     fetch(`${CURRENT_HOST}/tg_wb_benefit_scheduler/${nextIndex}`);
   }
