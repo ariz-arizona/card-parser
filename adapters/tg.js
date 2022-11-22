@@ -2,6 +2,8 @@ const router = require("express").Router();
 const TelegramBot = require("node-telegram-bot-api");
 const chrome = require('chrome-aws-lambda');
 const puppeteer = require('puppeteer-core');
+const fetch = require('@vercel/fetch')(require('cross-fetch'));
+const { Redis } = require('@upstash/redis/with-fetch');
 
 const { loadPage, constructHostV2, formatter, parseOzonData, timeout, getRandomInt } = require("../helpers");
 const shards = require("../data/shards.json");
@@ -30,52 +32,73 @@ bot.on("polling_error", (error) => {
   console.log(error.code);
 });
 
-router.post(`/tg_wb_benefit`, async (_req, res) => {
+router.all(`/tg_wb_benefit_scheduler/:keyIndex`, async (_req, res) => {
+  const { keyIndex } = _req.params;
+  const keys = Object.keys(shards);
+  const key = keys[keyIndex];
+  const nextIndex = parseInt(keyIndex) + 1
+
+  if ((keyIndex + 1) < keys.length) {
+    await fetch(`${CURRENT_HOST}/tg_wb_benefit/${key}`, { method: 'POST' });
+    await timeout(4000);
+    fetch(`${CURRENT_HOST}/tg_wb_benefit_scheduler/${nextIndex}`);
+  }
+  res.sendStatus(200);
+})
+router.all(`/tg_wb_benefit/:shardKey`, async (_req, res) => {
   // Список всех категорий
   // https://static.wbstatic.net/data/main-menu-ru-ru.json
 
   // Ссылка на поиск
   // https://catalog.wb.ru/catalog/${SHARD}/catalog?sort=benefit&${QUERY}
 
-  // Раз в час по крону дергать этот урл, он берет случайную категорию и получает выгодный товар
-  const shardKey = Object.keys(shards)[getRandomInt(0, Object.keys(shards).length)];
+  const { shardKey } = _req.params;
   const shard = shards[shardKey];
   const item = shard[getRandomInt(0, shard.length)];
-  // console.log({ shardKey, item });
-  const url = `https://catalog.wb.ru/catalog/${shardKey}/catalog?sort=benefit&${item.query}`;
-  // console.log({url});
+
+  const url = `https://catalog.wb.ru/catalog/${shardKey}/catalog?dest=-1059500,-72639,-3826860,-5551776&sort=benefit&${item.query}`;
   const dataRaw = await loadPage(url);
   try {
     const data = JSON.parse(dataRaw);
-
     const products = data.data.products;
-    // console.log(products[0]);
-    products.sort((a, b) => { (a.salePriceU / a.averagePrice) - (b.salePriceU / b.averagePrice) });
-    const product = products[0];
-    const link = `https://${wbUrl}${product.id}/detail.aspx`;
-    const imageUrl = constructHostV2(product.id);
+    products.sort((a, b) => {
+      const aMin = Math.min(a.averagePrice, a.priceU);
+      const bMin = Math.min(b.averagePrice, b.priceU);
+      return (bMin / b.salePriceU) - (aMin / a.salePriceU);
+    });
 
-    await bot.sendPhoto(CHANNEL_ID,
-      `https:${imageUrl}/images/big/1.jpg`,
-      {
-        caption:
-          `Самый выгодный товар по версии WB в категории ${item.name}` +
-          `\nРазбор карточки WB <code>${product.id}</code>` +
-          `\n${product.brand} <a href="${link}">${product.name}</a>` +
-          `\nЦена: ` +
-          `${product.salePriceU ?
-            `${formatter.format(product.salePriceU / 100)} <s>${formatter.format(product.priceU / 100)}</s>` :
-            `${formatter.format(product.priceU / 100)}`
-          }`,
-        parse_mode: 'HTML'
-      });
+    const product = products[0];
+
+    const redis = Redis.fromEnv();
+    const savedID = await redis.get(`cardparser_${shardKey}`);
+    if (savedID !== product.id) {
+      await redis.set(`cardparser_${shardKey}`, savedID);
+      const link = `https://${wbUrl}${product.id}/detail.aspx`;
+      const imageUrl = constructHostV2(product.id);
+
+      await bot.sendPhoto(CHANNEL_ID,
+        `https:${imageUrl}/images/big/1.jpg`,
+        {
+          caption:
+            `Самый выгодный товар по версии WB в категории ${item.name}` +
+            `\nРазбор карточки WB <code>${product.id}</code>` +
+            `\n${product.brand} <a href="${link}">${product.name}</a>` +
+            `\nЦена: ` +
+            `${product.salePriceU ?
+              `${formatter.format(product.salePriceU / 100)} <s>${formatter.format(product.priceU / 100)}</s>` :
+              `${formatter.format(product.priceU / 100)}`
+            }` +
+            `\nРазмеры: \n${product.sizes.map(el => `\u2705 ${el.name}`).join(', ')}`,
+          parse_mode: 'HTML'
+        });
+    }
   } catch (error) {
     await bot.sendMessage(CHANNEL_ID, error.message.toString().slice(0, 100));
   }
   res.sendStatus(200)
 });
 
-router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
+router.post(`/ tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
   if (_req.body.message) {
     const msgText = _req.body.message.text;
     const msgId = _req.body.message.message_id;
