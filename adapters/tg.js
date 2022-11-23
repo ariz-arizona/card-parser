@@ -13,6 +13,7 @@ const LOCAL_CHROME_EXECUTABLE = '/usr/bin/google-chrome';
 
 const wbUrl = 'wildberries.ru/catalog/';
 const ozonUrl = 'ozon.ru/product/';
+const detmirUrl = 'detmir.ru/product/index/id/'
 
 const bot = new TelegramBot(TG_TOKEN);
 bot.setWebHook(`${CURRENT_HOST}/tg${TG_TOKEN.replace(":", "_")}`, {
@@ -155,7 +156,6 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
 
       if (msgText && msgText[0] !== "/" && msgText.indexOf(ozonUrl) !== -1) {
         console.log(`Сделан запрос ${msgText} от чат айди ${chatId}`);
-        // console.log(chatId);
 
         const regexp = /ozon\.ru\/product\/.*?-(\d*?)\//;
         const msgMatch = msgText.match(regexp);
@@ -243,6 +243,43 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
           }
         }
       }
+
+      if (msgText && msgText[0] !== "/" && msgText.indexOf(detmirUrl) !== -1) {
+        console.log(`Сделан запрос ${msgText} от чат айди ${chatId}`);
+
+        const regexp = /detmir\.ru\/product\/index\/id\/(\d*?)\//;
+        const msgMatch = msgText.match(regexp);
+        if (!msgMatch.length) {
+          await bot.sendMessage(chatId, 'Ссылка не распознана');
+        } else {
+          const cardId = msgMatch[1];
+          const cardUrl = `https://api.detmir.ru/v2/products/${cardId}`;
+          const cardRaw = await loadPage(cardUrl);
+          const card = JSON.parse(cardRaw);
+          const product = card.item;
+
+          const variants = product.variants.map(el => {
+            return `${el.available.online.warehouse_codes.length ? '\u2705' : '\u274c'} ${el.title}`
+          }).join(', ');
+
+          await bot.sendPhoto(chatId,
+            product.pictures[0].original,
+            {
+              caption:
+                `Разбор карточки DETMIR <code>${cardId}</code>` +
+                `\n${product.brands[0].title} <a href="${product.link.web_url}">${product.title}</a>` +
+                `\nЦена: ` +
+                `${product.old_price ?
+                  `${formatter.format(product.price.price)} <s>${formatter.format(product.old_price.price)}</s>` :
+                  `${formatter.format(product.price.price)}`
+                }` +
+                `${product.variants.length ? `\nВарианты: \n${variants}` : ''}` +
+                `${product.available ? `\nНаличие: ${product.available.online.warehouse_codes.length ? '\u2705' : '\u274c'}` : ''}`,
+              parse_mode: 'HTML',
+              reply_to_message_id: msgId
+            });
+        }
+      }
     } catch (error) {
       await bot.sendMessage(chatId, error.message.toString().slice(0, 100));
       console.log(error.message);
@@ -255,7 +292,7 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
     const chatId = msg.chat.id;
     const messageId = msg.message_id;
 
-    console.log(`Получена команда ${action} от чат айди ${chatId}`);
+    console.log(`Получена команда ${ action } от чат айди ${ chatId }`);
 
     await bot.answerCallbackQuery(callbackQuery.id);
   }
