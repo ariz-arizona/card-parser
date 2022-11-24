@@ -33,6 +33,7 @@ bot.on("polling_error", (error) => {
   console.log(error.code);
 });
 
+const set = new Set();
 router.post(`/tg_wb_benefit_scheduler/:keyIndex`, async (_req, res) => {
   let { keyIndex } = _req.params;
   let isWait = keyIndex.indexOf('_wait') !== -1;
@@ -42,14 +43,19 @@ router.post(`/tg_wb_benefit_scheduler/:keyIndex`, async (_req, res) => {
   const key = keys[keyIndex];
   const nextIndex = parseInt(keyIndex) + 1
 
-  // console.log({key, keyIndex, isWait, test:parseInt(keyIndex) % 2})
-
+  
+  if (nextIndex >= keys.length) {
+    set.clear();
+  }
+  
   if ((keyIndex % 2 === 0) && !isWait) {
     await timeout(5000);
     fetch(`${CURRENT_HOST}/tg_wb_benefit_scheduler/${keyIndex}_wait`, { method: 'POST' });
   } else {
-    if (nextIndex < keys.length) {
+    if (nextIndex < keys.length && !set.has(key)) {
+      console.log({key, keyIndex})
       await fetch(`${CURRENT_HOST}/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/${key}`, { method: 'POST' });
+      set.add(key);
       // console.log(key);
       await timeout(3000);
       fetch(`${CURRENT_HOST}/tg_wb_benefit_scheduler/${nextIndex}`, { method: 'POST' });
@@ -84,7 +90,7 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/:shardKey`, async (_
     const redis = Redis.fromEnv();
     const savedIDB64 = await redis.get(`cardparser_${shardKey}`);
     const savedID = parseInt(savedIDB64 !== null ? Buffer.from(savedIDB64, 'base64').toString() : 0);
-    console.log({savedIDB64, savedID, pid: product.id, shardKey, condition: parseInt(savedID) !== parseInt(product.id)})
+    // console.log({savedIDB64, savedID, pid: product.id, shardKey, condition: parseInt(savedID) !== parseInt(product.id)})
     if (parseInt(savedID) !== parseInt(product.id)) {
       await redis.set(`cardparser_${shardKey}`, product.id);
       const link = `https://${wbUrl}${product.id}/detail.aspx`;
