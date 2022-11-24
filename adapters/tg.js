@@ -84,8 +84,8 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/:shardKey`, async (_
     const redis = Redis.fromEnv();
     const savedIDB64 = await redis.get(`cardparser_${shardKey}`);
     const savedID = parseInt(savedIDB64 !== null ? Buffer.from(savedIDB64, 'base64').toString() : 0);
-    // console.log({savedIDB64, savedID, pid: product.id})
-    if (savedID !== product.id) {
+    console.log({savedIDB64, savedID, pid: product.id, shardKey, condition: parseInt(savedID) !== parseInt(product.id)})
+    if (parseInt(savedID) !== parseInt(product.id)) {
       await redis.set(`cardparser_${shardKey}`, product.id);
       const link = `https://${wbUrl}${product.id}/detail.aspx`;
       const imageUrl = constructHostV2(product.id);
@@ -107,7 +107,11 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/:shardKey`, async (_
         });
     }
   } catch (error) {
-    await bot.sendMessage(CHANNEL_ID, error.message.toString().slice(0, 100));
+    if (error.message.indexOf('ETELEGRAM: 429 Too Many Requests') !== -1) {
+      await bot.sendMessage(CHANNEL_ID, error.message.toString().slice(0, 100));
+    } else {
+      await timeout(3000);
+    }
   }
   res.sendStatus(200)
 });
@@ -293,7 +297,7 @@ router.post(`/tg${TG_TOKEN.replace(":", "_")}`, async (_req, res) => {
     const chatId = msg.chat.id;
     const messageId = msg.message_id;
 
-    console.log(`Получена команда ${ action } от чат айди ${ chatId }`);
+    console.log(`Получена команда ${action} от чат айди ${chatId}`);
 
     await bot.answerCallbackQuery(callbackQuery.id);
   }
