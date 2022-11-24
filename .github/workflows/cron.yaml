@@ -9,4 +9,4 @@ jobs:
       - name: Call our API route
         run: |
           curl --request POST \
-          --url 'https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit_scheduler/1'
+          --url 'https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit_scheduler/tgtg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg/1'
