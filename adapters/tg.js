@@ -33,37 +33,6 @@ bot.on("polling_error", (error) => {
   console.log(error.code);
 });
 
-const set = new Set();
-router.post(`/tg_wb_benefit_scheduler/tg${TG_TOKEN.replace(":", "_")}/:keyIndex`, async (_req, res) => {
-  let { keyIndex } = _req.params;
-  let isWait = keyIndex.indexOf('_wait') !== -1;
-
-  if (isWait) keyIndex = keyIndex.replace('_wait', '');
-  const keys = Object.keys(shards);
-  const key = keys[keyIndex];
-  const nextIndex = parseInt(keyIndex) + 1
-
-
-  if (nextIndex >= keys.length) {
-    set.clear();
-  }
-
-  console.log({ key, keyIndex, isWait, isSet: set.has(key) });
-
-  if ((keyIndex % 2 === 0) && !isWait) {
-    await timeout(5000);
-    fetch(`${CURRENT_HOST}/tg_wb_benefit_scheduler/tg${TG_TOKEN.replace(":", "_")}/${keyIndex}_wait`, { method: 'POST' });
-  } else {
-    if (nextIndex < keys.length && !set.has(key)) {
-      await fetch(`${CURRENT_HOST}/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/${key}`, { method: 'POST' });
-      set.add(key);
-      // console.log(key);
-      await timeout(3000);
-      fetch(`${CURRENT_HOST}/tg_wb_benefit_scheduler/tg${TG_TOKEN.replace(":", "_")}/${nextIndex}`, { method: 'POST' });
-    }
-  }
-  res.sendStatus(200);
-})
 router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/:shardKey`, async (_req, res) => {
   // Список всех категорий
   // https://static.wbstatic.net/data/main-menu-ru-ru.json
