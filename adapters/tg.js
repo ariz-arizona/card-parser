@@ -57,7 +57,7 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/:shardKey`, async (_
       await timeout(2000);
     }
     const kind = kinds[index];
-    const url = `https://catalog.wb.ru/catalog/${shardKey}/catalog?dest=-1059500,-72639,-3826860,-5551776&sort=benefit&kind=${kind}`;
+    const url = `https://catalog.wb.ru/catalog/${shardKey}/catalog?dest=-1059500,-72639,-3826860,-5551776&sort=popular&discount=90&kind=${kind}`;
     const dataRaw = await loadPage(url);
     try {
       const data = JSON.parse(dataRaw);
