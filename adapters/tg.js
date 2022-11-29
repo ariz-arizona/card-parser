@@ -7,8 +7,9 @@ const { Redis } = require('@upstash/redis/with-fetch');
 
 const { loadPage, constructHostV2, formatter, parseOzonData, timeout, getRandomInt } = require("../helpers");
 const shards = require("../data/shards.json");
+const booksChildrenBrands = require("../data/books_children_brands.json");
 
-const { TG_TOKEN, CURRENT_HOST, CHANNEL_ID } = process.env;
+const { TG_TOKEN, CURRENT_HOST, CHANNEL_ID, BOOKS_CHANNEL_ID } = process.env;
 const LOCAL_CHROME_EXECUTABLE = '/usr/bin/google-chrome';
 
 const wbUrl = 'wildberries.ru/catalog/';
@@ -31,6 +32,65 @@ bot.on("error", (error) => {
 
 bot.on("polling_error", (error) => {
   console.log(error.code);
+});
+
+router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/books_children/:id`, async (_req, res) => {
+  const { id } = _req.params;
+  if (id < 0 || id >= booksChildrenBrands.length) {
+    return res.sendStatus(404);
+  }
+
+  const shardKey = 'books_children';
+  const brand = booksChildrenBrands[id];
+  const { name, id: brandId } = brand;
+  const url = `https://catalog.wb.ru/catalog/${shardKey}/catalog?dest=-1059500,-72639,-3826860,-5551776&sort=popular&discount=70&brand=${brandId}`;
+  const dataRaw = await loadPage(url);
+  try {
+    const data = JSON.parse(dataRaw);
+    const products = data.data.products;
+    products.sort((a, b) => {
+      const aMin = Math.min(a.averagePrice, a.priceU);
+      const bMin = Math.min(b.averagePrice, b.priceU);
+      return (bMin / b.salePriceU) - (aMin / a.salePriceU);
+    });
+
+    const product = products[0];
+
+    const redis = Redis.fromEnv();
+    const redisKey = `cardparser_${shardKey}_${id}`;
+    const savedIDB64 = await redis.get(redisKey);
+    const savedID = parseInt(savedIDB64 !== null ? Buffer.from(savedIDB64, 'base64').toString() : 0);
+    
+    if (product.id && parseInt(savedID) !== parseInt(product.id)) {
+      await redis.set(redisKey, product.id);
+      const link = `https://${wbUrl}${product.id}/detail.aspx`;
+      const imageUrl = constructHostV2(product.id);
+
+      await bot.sendPhoto(BOOKS_CHANNEL_ID,
+        `https:${imageUrl}/images/big/1.jpg`,
+        {
+          caption:
+            `Самый выгодный товар по версии WB в категории ${shardKey} для ${name}` +
+            `\nРазбор карточки WB <code>${product.id}</code>` +
+            `\n${product.brand} <a href="${link}">${product.name}</a>` +
+            `\nЦена: ` +
+            `${product.salePriceU ?
+              `${formatter.format(product.salePriceU / 100)} <s>${formatter.format(product.priceU / 100)}</s>` :
+              `${formatter.format(product.priceU / 100)}`
+            }` +
+            `\nРазмеры: \n${product.sizes.map(el => `\u2705 ${el.name}`).join(', ')}`,
+          parse_mode: 'HTML'
+        });
+    }
+  } catch (error) {
+    if (error.message.indexOf('ETELEGRAM: 429 Too Many Requests') !== -1) {
+      await bot.sendMessage(BOOKS_CHANNEL_ID, error.message.toString().slice(0, 100));
+    } else {
+      console.log(error.message.toString().slice(0, 100));
+    }
+  }
+
+  res.sendStatus(200);
 });
 
 router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/:shardKey`, async (_req, res) => {

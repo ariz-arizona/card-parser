@@ -43,4 +43,38 @@ jobs:
           curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg/toys3
           curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg/toys6
           curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg/toys4
-          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg/stationery1'
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg/stationery1
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/0
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/1
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/2
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/3
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/4
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/5
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/6
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/7
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/8
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/9
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/10
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/11
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/12
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/13
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/14
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/15
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/16
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/17
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/18
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/19
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/20
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/21
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/22
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/23
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/24
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/25
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/26
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/27
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/28
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/29
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/30
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/31
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/32
+          curl --request POST --url https://card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg//books_children/33'
