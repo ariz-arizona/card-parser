@@ -43,7 +43,7 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/books_children/:id`,
   const shardKey = 'books_children';
   const brand = booksChildrenBrands[id];
   const { name, id: brandId } = brand;
-  const url = `https://catalog.wb.ru/catalog/${shardKey}/catalog?dest=-1059500,-72639,-3826860,-5551776&sort=popular&discount=50&brand=${brandId}`;
+  const url = `https://catalog.wb.ru/catalog/${shardKey}/catalog?dest=-1059500,-72639,-3826860,-5551776&sort=benefit&brand=${brandId}`;
   const dataRaw = await loadPage(url);
   try {
     const data = JSON.parse(dataRaw);
