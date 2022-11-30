@@ -43,11 +43,12 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/books_children/:id`,
   const shardKey = 'books_children';
   const brand = booksChildrenBrands[id];
   const { name, id: brandId } = brand;
-  const url = `https://catalog.wb.ru/catalog/${shardKey}/catalog?dest=-1059500,-72639,-3826860,-5551776&sort=popular&discount=70&brand=${brandId}`;
+  const url = `https://catalog.wb.ru/catalog/${shardKey}/catalog?dest=-1059500,-72639,-3826860,-5551776&sort=popular&discount=50&brand=${brandId}`;
   const dataRaw = await loadPage(url);
   try {
     const data = JSON.parse(dataRaw);
     const products = data.data.products;
+    // console.log({noSort: products[0]})
     products.sort((a, b) => {
       const aMin = Math.min(a.averagePrice, a.priceU);
       const bMin = Math.min(b.averagePrice, b.priceU);
@@ -55,7 +56,7 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/books_children/:id`,
     });
 
     const product = products[0];
-
+    // console.log({sort: products[0]})
     const redis = Redis.fromEnv();
     const redisKey = `cardparser_${shardKey}_${id}`;
     const savedIDB64 = await redis.get(redisKey);
