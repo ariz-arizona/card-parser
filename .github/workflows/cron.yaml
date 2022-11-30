@@ -77,4 +77,5 @@ jobs:
           curl --request POST --url https:/card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg/books_children/30
           curl --request POST --url https:/card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg/books_children/31
           curl --request POST --url https:/card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg/books_children/32
-          curl --request POST --url https:/card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg/books_children/33'
+          curl --request POST --url https:/card-parser-ariz-arizona.vercel.app/tg_wb_benefit/tg5642869688_AAFgH5SrBNmT7vvUqHORa_4SNt1TWf40nsg/books_children/33
+          '
