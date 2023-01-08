@@ -61,7 +61,7 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/books_children/:id`,
     const redisKey = `cardparser_${shardKey}_${id}`;
     const savedIDB64 = await redis.get(redisKey);
     const savedID = parseInt(savedIDB64 !== null ? Buffer.from(savedIDB64, 'base64').toString() : 0);
-    
+
     if (product.id && parseInt(savedID) !== parseInt(product.id)) {
       await redis.set(redisKey, product.id);
       const link = `https://${wbUrl}${product.id}/detail.aspx`;
@@ -118,7 +118,7 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/:shardKey`, async (_
       await timeout(2000);
     }
     const kind = kinds[index];
-    const url = `https://catalog.wb.ru/catalog/${shardKey}/catalog?dest=-1059500,-72639,-3826860,-5551776&sort=popular&discount=90&kind=${kind}`;
+    const url = `https://catalog.wb.ru/catalog/${shardKey}/catalog?dest=-1059500,-72639,-3826860,-5551776&sort=popular&kind=${kind}`;
     const dataRaw = await loadPage(url);
     try {
       const data = JSON.parse(dataRaw);
@@ -134,11 +134,17 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/:shardKey`, async (_
       const redis = Redis.fromEnv();
       const redisKey = `cardparser_${shardKey}_${kind}`;
       const savedIDB64 = await redis.get(redisKey);
-      const savedID = parseInt(savedIDB64 !== null ? Buffer.from(savedIDB64, 'base64').toString() : 0);
-      // console.log({ savedIDB64, savedID, pid: product.id, shardKey, condition: parseInt(savedID) !== parseInt(product.id) })
+      const savedIDStr = savedIDB64 !== null ? Buffer.from(savedIDB64, 'base64').toString() : JSON.stringify([0]);
+      let savedIDArr = JSON.parse(savedIDStr);
+      if (typeof savedIDArr === 'number') savedIDArr = [savedIDArr];
+      // console.log({savedIDArr, p: product.id, c: savedIDArr.includes(product.id)});
 
-      if (product.id && parseInt(savedID) !== parseInt(product.id)) {
-        await redis.set(redisKey, product.id);
+      if (product.id && !savedIDArr.includes(product.id)) {
+        if (savedIDArr.length > 1) savedIDArr.shift();
+        savedIDArr.push(product.id)
+        // console.log({savedIDArr});
+
+        await redis.set(redisKey, JSON.stringify(savedIDArr));
         const link = `https://${wbUrl}${product.id}/detail.aspx`;
         const imageUrl = constructHostV2(product.id);
 
@@ -162,7 +168,7 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/:shardKey`, async (_
       if (error.message.indexOf('ETELEGRAM: 429 Too Many Requests') !== -1) {
         await bot.sendMessage(CHANNEL_ID, error.message.toString().slice(0, 100));
       } else {
-        console.log(error.message.toString().slice(0, 100));
+        console.log({ shardKey, kind, error: error.message.toString().slice(0, 100) });
       }
     }
   }
