@@ -60,10 +60,16 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/books_children/:id`,
     const redis = Redis.fromEnv();
     const redisKey = `cardparser_${shardKey}_${id}`;
     const savedIDB64 = await redis.get(redisKey);
-    const savedID = parseInt(savedIDB64 !== null ? Buffer.from(savedIDB64, 'base64').toString() : 0);
+    const savedIDStr = savedIDB64 !== null ? Buffer.from(savedIDB64, 'base64').toString() : JSON.stringify([0]);
+    let savedIDArr = JSON.parse(savedIDStr);
+    if (typeof savedIDArr === 'number') savedIDArr = [savedIDArr];
 
-    if (product.id && parseInt(savedID) !== parseInt(product.id)) {
-      await redis.set(redisKey, product.id);
+    if (product.id && !savedIDArr.includes(product.id)) {
+      if (savedIDArr.length > 1) savedIDArr.shift();
+      savedIDArr.push(product.id)
+      // console.log({savedIDArr});
+
+      await redis.set(redisKey, JSON.stringify(savedIDArr));
       const link = `https://${wbUrl}${product.id}/detail.aspx`;
       const imageUrl = constructHostV2(product.id);
 
@@ -87,7 +93,7 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/books_children/:id`,
     if (error.message.indexOf('ETELEGRAM: 429 Too Many Requests') !== -1) {
       await bot.sendMessage(BOOKS_CHANNEL_ID, error.message.toString().slice(0, 100));
     } else {
-      console.log(error.message.toString().slice(0, 100));
+      console.log({ shardKey, brandId, error: error.message.toString().slice(0, 100) });
     }
   }
 
