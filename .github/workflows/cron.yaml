@@ -1,5 +1,5 @@
-namev: cron-30-every-2
-on:5
+name: cron-30-every-2
+on:
   schedule:
     - cron: '30 */2 * * *'
 jobs:
