@@ -70,6 +70,19 @@ const getRandomInt = (min, max) => {
     return Math.floor(Math.random() * (max - min)) + min;
 }
 
+const sortFunc = (a, b) => {
+    const aMin = Math.min(a.averagePrice, a.priceU);
+    const bMin = Math.min(b.averagePrice, b.priceU);
+    return (bMin / b.salePriceU) - (aMin / a.salePriceU);
+};
+
+const prepareRedisGet = raw => {
+    const savedIDStr = raw !== null ? Buffer.from(raw, 'base64').toString() : JSON.stringify([0]);
+    let savedIDArr = JSON.parse(savedIDStr);
+    if (typeof savedIDArr === 'number') savedIDArr = [savedIDArr];
+    return savedIDArr;
+}
+
 module.exports = {
     array_chunks,
     timeout,
@@ -78,4 +91,6 @@ module.exports = {
     formatter,
     parseOzonData,
     getRandomInt,
+    sortFunc,
+    prepareRedisGet,
 };

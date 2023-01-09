@@ -5,7 +5,7 @@ const puppeteer = require('puppeteer-core');
 // const fetch = require('@vercel/fetch')(require('cross-fetch'));
 const { Redis } = require('@upstash/redis/with-fetch');
 
-const { loadPage, constructHostV2, formatter, parseOzonData, timeout, getRandomInt } = require("../helpers");
+const { loadPage, constructHostV2, formatter, parseOzonData, timeout, getRandomInt, sortFunc, prepareRedisGet } = require("../helpers");
 const shards = require("../data/shards.json");
 const booksChildrenBrands = require("../data/books_children_brands.json");
 
@@ -47,48 +47,41 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/books_children/:id`,
   const dataRaw = await loadPage(url);
   try {
     const data = JSON.parse(dataRaw);
-    const products = data.data.products;
-    // console.log({noSort: products[0]})
-    products.sort((a, b) => {
-      const aMin = Math.min(a.averagePrice, a.priceU);
-      const bMin = Math.min(b.averagePrice, b.priceU);
-      return (bMin / b.salePriceU) - (aMin / a.salePriceU);
-    });
 
-    const product = products[0];
-    // console.log({sort: products[0]})
     const redis = Redis.fromEnv();
     const redisKey = `cardparser_${shardKey}_${id}`;
-    const savedIDB64 = await redis.get(redisKey);
-    const savedIDStr = savedIDB64 !== null ? Buffer.from(savedIDB64, 'base64').toString() : JSON.stringify([0]);
-    let savedIDArr = JSON.parse(savedIDStr);
-    if (typeof savedIDArr === 'number') savedIDArr = [savedIDArr];
+    const savedIDArr = prepareRedisGet(await redis.get(redisKey));
 
-    if (product.id && !savedIDArr.includes(product.id)) {
-      if (savedIDArr.length > 1) savedIDArr.shift();
-      savedIDArr.push(product.id)
-      // console.log({savedIDArr});
+    let products = data.data.products;
+    products.sort(sortFunc);
+    products = products.filter(el => !savedIDArr.includes(el.id));
+    const product = products[0];
 
-      await redis.set(redisKey, JSON.stringify(savedIDArr));
-      const link = `https://${wbUrl}${product.id}/detail.aspx`;
-      const imageUrl = constructHostV2(product.id);
-
-      await bot.sendPhoto(BOOKS_CHANNEL_ID,
-        `https:${imageUrl}/images/big/1.jpg`,
-        {
-          caption:
-            `Самый выгодный товар по версии WB в категории ${shardKey} для ${name}` +
-            `\nРазбор карточки WB <code>${product.id}</code>` +
-            `\n${product.brand} <a href="${link}">${product.name}</a>` +
-            `\nЦена: ` +
-            `${product.salePriceU ?
-              `${formatter.format(product.salePriceU / 100)} <s>${formatter.format(product.priceU / 100)}</s>` :
-              `${formatter.format(product.priceU / 100)}`
-            }` +
-            `\nРазмеры: \n${product.sizes.map(el => `\u2705 ${el.name}`).join(', ')}`,
-          parse_mode: 'HTML'
-        });
+    if (!product.id) {
+      throw new Error(`No product in shard ${shardKey}, id ${id}`);
     }
+
+    if (savedIDArr.length > 1) savedIDArr.shift();
+    savedIDArr.push(product.id);
+    await redis.set(redisKey, JSON.stringify(savedIDArr));
+
+    const link = `https://${wbUrl}${product.id}/detail.aspx`;
+    const imageUrl = constructHostV2(product.id);
+
+    await bot.sendPhoto(BOOKS_CHANNEL_ID,
+      `https:${imageUrl}/images/big/1.jpg`,
+      {
+        caption:
+          `Самый выгодный товар по версии WB в категории ${shardKey} для издательства ${name}` +
+          `\nРазбор карточки WB <code>${product.id}</code>` +
+          `\n${product.brand} <a href="${link}">${product.name}</a>` +
+          `\nЦена: ` +
+          `${product.salePriceU ?
+            `${formatter.format(product.salePriceU / 100)} <s>${formatter.format(product.priceU / 100)}</s>` :
+            `${formatter.format(product.priceU / 100)}`
+          }`,
+        parse_mode: 'HTML'
+      });
   } catch (error) {
     if (error.message.indexOf('ETELEGRAM: 429 Too Many Requests') !== -1) {
       await bot.sendMessage(BOOKS_CHANNEL_ID, error.message.toString().slice(0, 100));
@@ -128,48 +121,42 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/:shardKey`, async (_
     const dataRaw = await loadPage(url);
     try {
       const data = JSON.parse(dataRaw);
-      const products = data.data.products;
-      products.sort((a, b) => {
-        const aMin = Math.min(a.averagePrice, a.priceU);
-        const bMin = Math.min(b.averagePrice, b.priceU);
-        return (bMin / b.salePriceU) - (aMin / a.salePriceU);
-      });
-
-      const product = products[0];
 
       const redis = Redis.fromEnv();
       const redisKey = `cardparser_${shardKey}_${kind}`;
-      const savedIDB64 = await redis.get(redisKey);
-      const savedIDStr = savedIDB64 !== null ? Buffer.from(savedIDB64, 'base64').toString() : JSON.stringify([0]);
-      let savedIDArr = JSON.parse(savedIDStr);
-      if (typeof savedIDArr === 'number') savedIDArr = [savedIDArr];
-      // console.log({savedIDArr, p: product.id, c: savedIDArr.includes(product.id)});
+      const savedIDArr = prepareRedisGet(await redis.get(redisKey));
 
-      if (product.id && !savedIDArr.includes(product.id)) {
-        if (savedIDArr.length > 1) savedIDArr.shift();
-        savedIDArr.push(product.id)
-        // console.log({savedIDArr});
+      let products = data.data.products;
+      products.sort(sortFunc);
+      products = products.filter(el => !savedIDArr.includes(el.id));
+      const product = products[0];
 
-        await redis.set(redisKey, JSON.stringify(savedIDArr));
-        const link = `https://${wbUrl}${product.id}/detail.aspx`;
-        const imageUrl = constructHostV2(product.id);
-
-        await bot.sendPhoto(CHANNEL_ID,
-          `https:${imageUrl}/images/big/1.jpg`,
-          {
-            caption:
-              `Самый выгодный товар по версии WB в категории ${shardKey}` +
-              `\nРазбор карточки WB <code>${product.id}</code>` +
-              `\n${product.brand} <a href="${link}">${product.name}</a>` +
-              `\nЦена: ` +
-              `${product.salePriceU ?
-                `${formatter.format(product.salePriceU / 100)} <s>${formatter.format(product.priceU / 100)}</s>` :
-                `${formatter.format(product.priceU / 100)}`
-              }` +
-              `\nРазмеры: \n${product.sizes.map(el => `\u2705 ${el.name}`).join(', ')}`,
-            parse_mode: 'HTML'
-          });
+      if (!product.id) {
+        throw new Error(`No product in shard ${shardKey}, kind ${kind}`);
       }
+
+      if (savedIDArr.length > 1) savedIDArr.shift();
+      savedIDArr.push(product.id);
+      await redis.set(redisKey, JSON.stringify(savedIDArr));
+      
+      const link = `https://${wbUrl}${product.id}/detail.aspx`;
+      const imageUrl = constructHostV2(product.id);
+
+      await bot.sendPhoto(CHANNEL_ID,
+        `https:${imageUrl}/images/big/1.jpg`,
+        {
+          caption:
+            `Самый выгодный товар по версии WB в категории ${shardKey}` +
+            `\nРазбор карточки WB <code>${product.id}</code>` +
+            `\n${product.brand} <a href="${link}">${product.name}</a>` +
+            `\nЦена: ` +
+            `${product.salePriceU ?
+              `${formatter.format(product.salePriceU / 100)} <s>${formatter.format(product.priceU / 100)}</s>` :
+              `${formatter.format(product.priceU / 100)}`
+            }` +
+            `\nРазмеры: \n${product.sizes.map(el => `\u2705 ${el.name}`).join(', ')}`,
+          parse_mode: 'HTML'
+        });
     } catch (error) {
       if (error.message.indexOf('ETELEGRAM: 429 Too Many Requests') !== -1) {
         await bot.sendMessage(CHANNEL_ID, error.message.toString().slice(0, 100));
