@@ -1,7 +1,7 @@
-name: cron-30-every-4
+name: cron-30-every-6
 on:
   schedule:
-    - cron: '30 */4 * * *'
+    - cron: '30 */6 * * *'
 jobs:
   cron:
     runs-on: ubuntu-latest
