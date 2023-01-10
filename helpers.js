@@ -71,9 +71,18 @@ const getRandomInt = (min, max) => {
 }
 
 const sortFunc = (a, b) => {
-    const aMin = Math.min(a.averagePrice, a.priceU);
-    const bMin = Math.min(b.averagePrice, b.priceU);
-    return (bMin / b.salePriceU) - (aMin / a.salePriceU);
+    const aMin = Math.min(a.averagePrice, a.priceU, a.salePriceU);
+    const aMax = Math.max(a.averagePrice, a.priceU, a.salePriceU);
+    const aCoef = aMin / aMax;
+
+    const bMin = Math.min(b.averagePrice, b.priceU, b.salePriceU);
+    const bMax = Math.max(b.averagePrice, b.priceU, b.salePriceU);
+    const bCoef = bMin / bMax;
+
+    // товар А - 500/1000 - 0,5
+    // товар Б - 750/1000 - 0,75
+    // НАДО А перед Б
+    return aCoef - bCoef;
 };
 
 const prepareRedisGet = raw => {
