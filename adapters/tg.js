@@ -54,11 +54,14 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/books_children/:id`,
 
     let products = data.data.products;
     products.sort(sortFunc);
-    products = products.filter(el => !savedIDArr.includes(el.id));
+    // products = products.filter(el => !savedIDArr.includes(el.id));
     const product = products[0];
 
     if (!product.id) {
       throw new Error(`No product in shard ${shardKey}, id ${id}`);
+    }
+    if (savedIDArr.includes(product.id)) {
+      throw new Error(`Product in viewed array in shard ${shardKey}, id ${id}`);
     }
 
     if (savedIDArr.length > 1) savedIDArr.shift();
@@ -128,17 +131,20 @@ router.post(`/tg_wb_benefit/tg${TG_TOKEN.replace(":", "_")}/:shardKey`, async (_
 
       let products = data.data.products;
       products.sort(sortFunc);
-      products = products.filter(el => !savedIDArr.includes(el.id));
+      // products = products.filter(el => !savedIDArr.includes(el.id));
       const product = products[0];
 
       if (!product.id) {
         throw new Error(`No product in shard ${shardKey}, kind ${kind}`);
       }
+      if (savedIDArr.includes(product.id)) {
+        throw new Error(`Product in viewed array in shard ${shardKey}, kind ${kind}`);
+      }
 
       if (savedIDArr.length > 1) savedIDArr.shift();
       savedIDArr.push(product.id);
       await redis.set(redisKey, JSON.stringify(savedIDArr));
-      
+
       const link = `https://${wbUrl}${product.id}/detail.aspx`;
       const imageUrl = constructHostV2(product.id);
 
